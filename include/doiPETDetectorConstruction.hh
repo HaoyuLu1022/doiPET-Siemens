@@ -94,7 +94,7 @@ protected:
 	void ReadPhantomDataFile(const G4String& fname);
 	void ConstructPhantomContainer();
     void ConstructPhantomContainerNew(G4LogicalVolume* worldLogical);
-	void ConstructPhantomDICOM();
+	void ConstructPhantomDICOM(G4LogicalVolume* worldLogical);
 	void MergeZSliceHeaders();
 	G4Material* BuildMaterialWithChangingDensity(const G4Material* origMate, G4float density, G4String newMateName);
 	void SetScorer(G4LogicalVolume* voxel_logic);
@@ -133,6 +133,10 @@ private:
 
 	G4LogicalVolume* phantom_logicalV;
 	G4VPhysicalVolume* phantom_physicalV;
+	
+	// DICOM phantom parameterization 
+	DicomPhantomParameterisationColour* param;
+	
 	G4LogicalVolume* gelatin_logicalV;
 	G4VPhysicalVolume* gelatin_physicalV;
 

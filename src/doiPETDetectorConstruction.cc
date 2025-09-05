@@ -90,7 +90,8 @@
 
 doiPETDetectorConstruction::doiPETDetectorConstruction()
 	: G4VUserDetectorConstruction(),
-	fCheckOverlaps(true)
+	fCheckOverlaps(true),
+	param(nullptr)
 {
 	DefineMaterials();
 	fDetectorMessenger = new doiPETDetectorConstructionMessenger(this);
@@ -109,6 +110,7 @@ doiPETDetectorConstruction::doiPETDetectorConstruction()
 doiPETDetectorConstruction::~doiPETDetectorConstruction()
 {
 	delete fDetectorMessenger;
+	if (param) delete param;
 }
 
 /////////////////////////////////// Define Materials /////////////////////////////////////////////////////
@@ -772,9 +774,9 @@ void doiPETDetectorConstruction::ConstructPhantom(G4LogicalVolume* worldLogical)
 			ConstructPhantomContainer();
 		#endif
 
-			ConstructPhantomDICOM();
+			ConstructPhantomDICOM(worldLogical);
 			
-			// Set phantom_logicalV to container logical volume for visualization
+			// Set phantom_logicalV to container logical volume for main visualization
 			phantom_logicalV = fContainer_logic;
 	}
 	else
@@ -1208,14 +1210,15 @@ G4Material* doiPETDetectorConstruction::BuildMaterialWithChangingDensity(const G
   return mate;
 }
 
-void doiPETDetectorConstruction::ConstructPhantomDICOM()
+void doiPETDetectorConstruction::ConstructPhantomDICOM(G4LogicalVolume* worldLogical)
 {
 	#ifdef G4VERBOSE
 		G4cout << "DicomRegularDetectorConstruction::ConstructPhantom " << G4endl;
 	#endif
 
-	//----- Create parameterisation
-	DicomPhantomParameterisationColour* param = new DicomPhantomParameterisationColour();
+	#ifdef G4_DCMTK
+	//----- Create parameterisation with explicit color file path
+	param = new DicomPhantomParameterisationColour("data/ColourMap.dat");
 
 	//----- Set voxel dimensions
 	param->SetVoxelDimensions(fVoxelHalfDimX, fVoxelHalfDimY, fVoxelHalfDimZ);
@@ -1238,8 +1241,9 @@ void doiPETDetectorConstruction::ConstructPhantomDICOM()
 	// material is not relevant, it will be changed by the
 	// ComputeMaterial method of the parameterisation
 
-	voxel_logic->SetVisAttributes(new G4VisAttributes(G4VisAttributes::GetInvisible()));
+	// Don't set explicit visualization attributes - let parameterization handle colors
 
+	//--- Use the container already created by ConstructPhantomContainerNew
 	//--- Assign the fContainer volume of the parameterisation
 	param->BuildContainerSolid(fContainer_phys);
 
@@ -1251,7 +1255,7 @@ void doiPETDetectorConstruction::ConstructPhantomDICOM()
 
 	//----- The G4PVParameterised object that uses the created parameterisation
 	// should be placed in the fContainer logical volume
-	G4PVParameterised* phantom_phys = new G4PVParameterised(
+	phantom_physicalV = new G4PVParameterised(
 		"phantom", voxel_logic, fContainer_logic, kXAxis, fNoVoxelsX * fNoVoxelsY * fNoVoxelsZ, param);
 	// if axis is set as kUndefined instead of kXAxis, GEANT4 will
 	//  do an smart voxel optimisation
@@ -1259,10 +1263,13 @@ void doiPETDetectorConstruction::ConstructPhantomDICOM()
 
 	//----- Set this physical volume as having a regular structure of type 1,
 	// so that G4RegularNavigation is used
-	phantom_phys->SetRegularStructureId(1);  // if not set, G4VoxelNavigation
+	static_cast<G4PVParameterised*>(phantom_physicalV)->SetRegularStructureId(1);  // if not set, G4VoxelNavigation
 	// will be used instead
 
 	SetScorer(voxel_logic);
+	
+	// phantom_logicalV is already set to fContainer_logic in main function
+	#endif
 }
 
 void doiPETDetectorConstruction::SetScorer(G4LogicalVolume* voxel_logic)
