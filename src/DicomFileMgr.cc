@@ -74,6 +74,11 @@ void DicomFileMgr::Convert(G4String fileName)
       G4cout << "@@@@@@@ Reading FILE: " << wl[1] << G4endl;
       AddFile(wl[1]);
     }
+    else if (wl[0] == ":ACTIVITY_FILE") {
+      CheckNColumns(wl, 2);
+      G4cout << "@@@@@@@ Reading ACTIVITY FILE: " << wl[1] << G4endl;
+      AddActivityFile(wl[1]);
+    }
     else if (wl[0] == ":FILE_OUT") {
       CheckNColumns(wl, 2);
       theFileOutName = wl[1];
@@ -159,17 +164,50 @@ void DicomFileMgr::AddFile(G4String fileName)
     thePlanFiles.push_back(df);
   }
   else if (dModality == "PT") {
+    G4cout << "WARNING: Found PT/PET file in :FILE directive. " << G4endl;
+    G4cout << "         PT/PET files should use :ACTIVITY_FILE instead." << G4endl;
+    G4cout << "         Processing as activity file..." << G4endl;
     DicomFilePET* df = new DicomFilePET(dset);
     df->ReadData();
     df->SetFileName(fileName);
-    //    theFiles.insert(msd::value_type(dModality,df));
     thePETFiles[df->GetMaxZ()] = df;
-    //    thePETFiles.push_back(df);
   }
   else {
     G4Exception(
       "DicomFileMgr::AddFIle()", "DFM001", FatalErrorInArgument,
       (G4String("File is not of type CT or RTSTRUCT or RTPLAN, but: ") + dModality).c_str());
+  }
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void DicomFileMgr::AddActivityFile(G4String fileName)
+{
+  DcmFileFormat dfile;
+  if (!(dfile.loadFile(fileName.c_str())).good()) {
+    G4Exception("DicomHandler::ReadFile", "dfile.loadFile", FatalErrorInArgument,
+                ("Error reading file " + fileName).c_str());
+  }
+  DcmDataset* dset = dfile.getDataset();
+
+  OFString dModality;
+  if (!dset->findAndGetOFString(DCM_Modality, dModality).good()) {
+    G4Exception("DicomHandler::ReadData ", "", FatalException, " Have not read Modality");
+  }
+
+  // For activity files, we expect PET/PT modality but we process them separately
+  if (dModality == "PT" || dModality == "PET") {
+    DicomFilePET* df = new DicomFilePET(dset);
+    df->ReadData();
+    df->SetFileName(fileName);
+    // Store activity files separately - they should not interfere with CT material processing
+    thePETFiles[df->GetMaxZ()] = df;
+    G4cout << "DicomFileMgr::AddActivityFile - Added PET/activity file: " << fileName 
+           << " at Z=" << df->GetMaxZ() << G4endl;
+  }
+  else {
+    G4Exception(
+      "DicomFileMgr::AddActivityFile()", "DFM002", FatalErrorInArgument,
+      (G4String("Activity file must be of type PT/PET, but found: ") + dModality).c_str());
   }
 }
 
@@ -562,11 +600,22 @@ void DicomFileMgr::DumpToTextFile()
   }
 
   if (thePETFiles.size() != 0) {
-    std::ofstream fout(theFileOutName);
-
-    thePETFileAll->DumpHeaderToTextFile(fout);
-    for (mdpet::const_iterator itect = thePETFiles.begin(); itect != thePETFiles.end(); itect++) {
-      (*itect).second->DumpActivitiesToTextFile(fout);
+    // Only dump PET data if there are NO CT files (to avoid overwriting)
+    // When both CT and PET files exist, CT data takes precedence for phantom geometry
+    if (theCTFiles.size() == 0) {
+      std::ofstream fout(theFileOutName);
+      
+      thePETFileAll->DumpHeaderToTextFile(fout);
+      for (mdpet::const_iterator itect = thePETFiles.begin(); itect != thePETFiles.end(); itect++) {
+        (*itect).second->DumpActivitiesToTextFile(fout);
+      }
+    } else {
+      // When both CT and PET files exist, we could save PET activities to a separate file
+      // or handle them in a different way for activity-guided simulations
+      G4cout << "DicomFileMgr::DumpToTextFile - Found both CT and PET files." << G4endl;
+      G4cout << "  CT data written to: " << theFileOutName << G4endl;
+      G4cout << "  PET activity data is available but not written to phantom file" << G4endl;
+      G4cout << "  (PET activities should be used for source distribution setup)" << G4endl;
     }
   }
 

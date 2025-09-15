@@ -52,7 +52,8 @@ class DicomPhantomZSliceMerged
 
   public:
     // Public functions
-    void AddZSlice(DicomPhantomZSliceHeader* val) { fSlices[val->GetSliceLocation()] = val; }
+    void AddZSlice(DicomPhantomZSliceHeader* val);
+    void AddZSliceSimple(DicomPhantomZSliceHeader* val) { fSlices[val->GetSliceLocation()] = val; }
 
     void CheckSlices();
 

@@ -1,0 +1,17 @@
+#==========================- Pre-initialisation parameters -=========================
+
+#choose the type of phantom
+/changePhantom/setPhantom dicom 
+
+#Set the halflife of the isotope in units of second
+/change/HalfLife 6586.2 s #Halflife of F-18
+
+#Change the position of phantom. !!!Remember to change the source position as well.
+/changePhantom/position 10 0 0 mm
+
+/run/initialize
+/run/verbose 2
+
+#/random/setSeeds  1 2
+
+/run/beamOn 100000 #36461089

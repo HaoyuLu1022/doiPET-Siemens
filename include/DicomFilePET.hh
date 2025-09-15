@@ -38,6 +38,10 @@ class DicomFilePET : public DicomVFileImage
   public:
     void BuildActivities();
     void DumpActivitiesToTextFile(std::ofstream& fout);
+    
+    // Getter for activities data
+    const std::vector<size_t>& GetActivities() const { return fActivities; }
+    const std::vector<int>& GetHounsfieldV() const { return fHounsfieldV; }
 
   private:
     std::vector<size_t> fActivities;

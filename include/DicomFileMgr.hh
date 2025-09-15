@@ -63,13 +63,12 @@ class DicomFileMgr
   public:
     std::vector<DicomFileStructure*> GetStructFiles() const { return theStructFiles; }
 
-    void SetCompression(G4String fComp);
-    void AddFile(G4String fComp);
-    void AddMaterial(std::vector<G4String> data);
-    void AddMaterialDensity(std::vector<G4String> data);
-    void AddCT2Density(std::vector<G4String> data);
-
-    void Convert(G4String fFileName);
+  void SetCompression(G4String fComp);
+  void AddFile(G4String fComp);
+  void AddActivityFile(G4String fComp);
+  void AddMaterial(std::vector<G4String> data);
+  void AddMaterialDensity(std::vector<G4String> data);
+  void AddCT2Density(std::vector<G4String> data);    void Convert(G4String fFileName);
     void CheckNColumns(std::vector<G4String> wl, size_t vsizeTh);
     void ProcessFiles();
     void CheckCTSlices();
@@ -88,6 +87,10 @@ class DicomFileMgr
     G4int GetStructureNMaxROI() const { return theStructureNMaxROI; }
     G4int GetCompression() const { return fCompression; }
     G4String GetFileOutName() const { return theFileOutName; }
+    
+    // Access to PET data
+    DicomFilePET* GetPETFileAll() const { return thePETFileAll; }
+    const mdpet& GetPETFiles() const { return thePETFiles; }
 
     void SetControlPointMetersets();
     G4bool IsMaterialsDensity() const { return bMaterialsDensity; }

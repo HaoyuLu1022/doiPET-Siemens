@@ -49,6 +49,7 @@
 class G4ParticleGun;
 class G4GeneralParticleSource;
 class G4Event;
+class DicomFileMgr;
 
 /// The primary generator action class
 
@@ -62,11 +63,26 @@ public:
 	virtual void GeneratePrimaries(G4Event*);         
 
 	const G4GeneralParticleSource* GetParticleGun() const { return fParticleGun; }
-
-
+	
+	// Scan time configuration
+	void SetScanTime(G4double scanTime) { fScanTime = scanTime; }
+	G4double GetScanTime() const { return fScanTime; }
+	G4double GetTotalActivity() const { return fTotalActivity; }
+	G4long GetTotalEmissions() const { return fTotalEmissions; }
 
 private:
+	void InitializePETSource();
+	G4ThreeVector SampleFromPETActivity();
+	void CalculateTotalEmissions();
+	
 	G4GeneralParticleSource*  fParticleGun;
+	DicomFileMgr* fDicomMgr;
+	G4bool fUsePETActivity;
+	
+	// Scan time parameters
+	G4double fScanTime;           // Total scan time in seconds
+	G4double fTotalActivity;      // Total activity in Bq
+	G4long fTotalEmissions;       // Total expected emissions during scan
 };
 
 

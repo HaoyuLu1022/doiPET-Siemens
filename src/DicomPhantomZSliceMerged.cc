@@ -132,3 +132,46 @@ void DicomPhantomZSliceMerged::CheckSlices()
   }
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void DicomPhantomZSliceMerged::AddZSlice(DicomPhantomZSliceHeader* val) 
+{
+  G4double sliceLocation = val->GetSliceLocation();
+  
+  // Check if a slice already exists at this location
+  auto existing = fSlices.find(sliceLocation);
+  if (existing != fSlices.end()) {
+    // A slice already exists at this location
+    DicomPhantomZSliceHeader* existingSlice = existing->second;
+    
+    // Check if the new slice has materials defined
+    std::vector<G4String> newMaterials = val->GetMaterialNames();
+    std::vector<G4String> existingMaterials = existingSlice->GetMaterialNames();
+    
+    if (newMaterials.empty() && !existingMaterials.empty()) {
+      // New slice has no materials (likely a PET/source file), keep existing (CT/attenuation) slice
+      G4cout << "DicomPhantomZSliceMerged::AddZSlice - Keeping existing slice with materials at location " 
+             << sliceLocation << G4endl;
+      delete val; // Clean up the new slice since we're not using it
+      return;
+    } else if (!newMaterials.empty() && existingMaterials.empty()) {
+      // Existing slice has no materials, replace with new slice
+      G4cout << "DicomPhantomZSliceMerged::AddZSlice - Replacing slice without materials at location " 
+             << sliceLocation << G4endl;
+      delete existing->second;
+      fSlices[sliceLocation] = val;
+      return;
+    } else {
+      // Both have materials or both are empty, replace (original behavior)
+      G4cout << "DicomPhantomZSliceMerged::AddZSlice - Replacing slice at location " 
+             << sliceLocation << G4endl;
+      delete existing->second;
+      fSlices[sliceLocation] = val;
+      return;
+    }
+  } else {
+    // No existing slice, add normally
+    fSlices[sliceLocation] = val;
+  }
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
